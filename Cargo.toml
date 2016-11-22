@@ -1,0 +1,12 @@
+[package]
+name = "qptrie"
+version = "0.1.0"
+authors = ["Frank Denis <github@pureftpd.org>"]
+
+[dependencies]
+clippy = {version = "*", optional = true}
+
+[profile.release]
+lto = true
+panic = "abort"
+opt-level = 3
