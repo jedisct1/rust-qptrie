@@ -1,0 +1,17 @@
+[package]
+name = "qptrie"
+version = "0.2.1"
+description = "A QP-Trie implementation for Rust"
+license = "ISC"
+authors = ["Frank Denis <github@pureftpd.org>"]
+homepage = "https://github.com/jedisct1/rust-qptrie"
+repository = "https://github.com/jedisct1/rust-qptrie"
+
+[dependencies]
+clippy = {version = "~0", optional = true}
+debug_unreachable = "~0"
+
+[profile.release]
+lto = true
+panic = "abort"
+opt-level = 3
