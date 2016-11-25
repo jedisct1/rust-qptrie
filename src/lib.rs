@@ -374,7 +374,7 @@ impl Trie {
         true
     }
 
-    pub fn find<'s>(&'s self, key: &'s [u8]) -> TrieIterator {
+    pub fn prefix_iter<'s>(&'s self, key: &'s [u8]) -> TrieIterator {
         TrieIterator {
             t: self.root.as_ref().unwrap(),
             key: key,
