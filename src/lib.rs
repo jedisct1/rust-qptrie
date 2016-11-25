@@ -27,37 +27,37 @@ impl FlagsIndex {
 }
 
 #[derive(Clone, Debug)]
-struct Tleaf {
-    key: Vec<u8>,
+struct Tleaf<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+    key: TK,
     val: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
-struct Tbranch {
-    twigs: Vec<Node>,
+struct Tbranch<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+    twigs: Vec<Node<TK>>,
     flags_index: FlagsIndex,
     bitmap: Tbitmap,
 }
 
 #[derive(Clone, Debug)]
-enum Node {
-    Leaf(Tleaf),
-    Branch(Tbranch),
+enum Node<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+    Leaf(Tleaf<TK>),
+    Branch(Tbranch<TK>),
 }
 
 #[derive(Default, Debug)]
-pub struct Trie {
-    root: Option<Node>,
+pub struct Trie<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+    root: Option<Node<TK>>,
 }
 
-impl Tbranch {
+impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Tbranch<TK> {
     #[inline]
     fn twigoff(&self, b: Tbitmap) -> usize {
         (self.bitmap & (b - 1)).count_ones() as usize
     }
 }
 
-impl Node {
+impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Node<TK> {
     #[inline]
     fn flags_index_get(&self) -> (u8, usize) {
         let branch = match *self {
@@ -87,7 +87,7 @@ impl Node {
         if i >= len {
             return 1;
         }
-        Node::nibbit(key[i], flags)
+        Node::<TK>::nibbit(key[i], flags)
     }
 
     #[inline]
@@ -108,7 +108,7 @@ impl Node {
     }
 
     #[inline]
-    fn twig(&self, i: usize) -> &Node {
+    fn twig(&self, i: usize) -> &Node<TK> {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
             _ => unreachable!(),
@@ -117,7 +117,7 @@ impl Node {
     }
 
     #[inline]
-    fn twig_mut(&mut self, i: usize) -> &mut Node {
+    fn twig_mut(&mut self, i: usize) -> &mut Node<TK> {
         let branch = match *self {
             Node::Branch(ref mut branch) => branch,
             _ => unreachable!(),
@@ -143,7 +143,7 @@ impl Node {
         (1 as Tbitmap) << ((k & mask) >> shift)
     }
 
-    fn _next_ge<'s>(self: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+    fn _next_ge<'s>(self: &'s Node<TK>, key: &[u8]) -> Option<(&'s TK, &'s Vec<u8>)> {
         if self.is_branch() {
             let (s, m) = self.twigoff_max(self.twigbit(key));
             for s in s..m {
@@ -160,7 +160,7 @@ impl Node {
         Some((&leaf.key, &leaf.val))
     }
 
-    fn _next_gt<'s>(self: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+    fn _next_gt<'s>(self: &'s Node<TK>, key: &[u8]) -> Option<(&'s TK, &'s Vec<u8>)> {
         if self.is_branch() {
             let (s, m) = self.twigoff_max(self.twigbit(key));
             for s in s..m {
@@ -174,7 +174,7 @@ impl Node {
             Node::Leaf(ref leaf) => leaf,
             _ => unreachable!(),
         };
-        if leaf.key == key {
+        if leaf.key.as_ref() == key {
             None
         } else {
             Some((&leaf.key, &leaf.val))
@@ -182,8 +182,9 @@ impl Node {
     }
 }
 
-impl Trie {
-    pub fn get(&self, key: &[u8]) -> Option<&Vec<u8>> {
+impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Trie<TK> {
+    pub fn get(&self, key: &TK) -> Option<&Vec<u8>> {
+        let key = key.as_ref();
         if self.root.is_none() {
             return None;
         }
@@ -204,19 +205,19 @@ impl Trie {
             Node::Leaf(ref leaf) => leaf,
             _ => unreachable!(),
         };
-        if leaf.key != key {
+        if leaf.key.as_ref() != key {
             return None;
         }
         Some(&leaf.val)
     }
 
-    pub fn set(&mut self, key: Vec<u8>, val: Vec<u8>) -> bool {
-        let len = match key.len() {
+    pub fn set(&mut self, key: TK, val: Vec<u8>) -> bool {
+        let len = match key.as_ref().len() {
             0 => panic!("key cannot be empty"),
             len if len >= 0xffffff => panic!("key is too long"),
             len => len - 1,
         };
-        if key[len] != 0 {
+        if key.as_ref()[len] != 0 {
             panic!("key must be zero-terminated")
         }
         if self.root.is_none() {
@@ -227,10 +228,10 @@ impl Trie {
             self.root = Some(new_node);
             return true;
         }
-        let mut t: *mut Node = self.root.as_mut().unwrap();
+        let mut t: *mut Node<TK> = self.root.as_mut().unwrap();
         let t = unsafe {
             while (&*t).is_branch() {
-                let b = (&*t).twigbit(&key);
+                let b = (&*t).twigbit(&key.as_ref());
                 let i = if (&*t).has_twig(b) {
                     (&*t).twigoff(b)
                 } else {
@@ -248,7 +249,7 @@ impl Trie {
         let mut i = 0;
         let mut x = 0;
         while i <= len {
-            x = key[i] ^ leaf_key[i];
+            x = key.as_ref()[i] ^ leaf_key.as_ref()[i];
             if x != 0 {
                 break;
             }
@@ -258,10 +259,10 @@ impl Trie {
             leaf.val = val;
             return false;
         }
-        let k1 = key[i];
-        let k2 = leaf_key[i];
+        let k1 = key.as_ref()[i];
+        let k2 = leaf_key.as_ref()[i];
         let f = if (x & 0xf0) != 0 { 1 } else { 2 };
-        let mut t: *mut Node = self.root.as_mut().unwrap();
+        let mut t: *mut Node<TK> = self.root.as_mut().unwrap();
         let (t, grow_branch) = unsafe {
             let mut grow_branch = false;
             while (&*t).is_branch() {
@@ -273,7 +274,7 @@ impl Trie {
                 if (i == index && f < flags) || i < index {
                     break;
                 }
-                let b = (&*t).twigbit(&key);
+                let b = (&*t).twigbit(&key.as_ref());
                 debug_assert!((&*t).has_twig(b));
                 t = (&mut *t).twig_mut((&*t).twigoff(b));
             }
@@ -283,18 +284,23 @@ impl Trie {
             key: key,
             val: val,
         });
-        let b1 = Node::nibbit(k1, f);
+        let b1 = Node::<TK>::nibbit(k1, f);
         if grow_branch {
             Self::_grow_branch(t, b1, new_node);
         } else {
-            let b2 = Node::nibbit(k2, f);
+            let b2 = Node::<TK>::nibbit(k2, f);
             Self::_new_branch(t, b1, b2, f, i, new_node);
         }
         true
     }
 
-    fn _new_branch(t: &mut Node, b1: Tbitmap, b2: Tbitmap, f: u8, i: usize, new_node: Node) {
-        let twigs: Vec<Node> = Vec::with_capacity(2);
+    fn _new_branch(t: &mut Node<TK>,
+                   b1: Tbitmap,
+                   b2: Tbitmap,
+                   f: u8,
+                   i: usize,
+                   new_node: Node<TK>) {
+        let twigs: Vec<Node<TK>> = Vec::with_capacity(2);
         let mut new_t = Tbranch {
             twigs: twigs,
             flags_index: FlagsIndex::new(f, i),
@@ -310,7 +316,7 @@ impl Trie {
         *t = Node::Branch(new_t);
     }
 
-    fn _grow_branch(t: &mut Node, b1: Tbitmap, new_node: Node) {
+    fn _grow_branch(t: &mut Node<TK>, b1: Tbitmap, new_node: Node<TK>) {
         debug_assert!(!t.has_twig(b1));
         let branch = match *t {
             Node::Branch(ref mut branch) => branch,
@@ -321,21 +327,21 @@ impl Trie {
         branch.bitmap |= b1;
     }
 
-    pub fn del(&mut self, key: &[u8]) -> bool {
+    pub fn del(&mut self, key: &TK) -> bool {
         if self.root.is_none() {
             return false;
         }
-        let len = match key.len() {
+        let len = match key.as_ref().len() {
             0 => return false,
             len => len - 1,
         };
-        assert_eq!(key[len], 0);
-        let mut t: *mut Node = self.root.as_mut().unwrap();
-        let (t, p, b): (&mut Node, _, _) = unsafe {
+        assert_eq!(key.as_ref()[len], 0);
+        let mut t: *mut Node<TK> = self.root.as_mut().unwrap();
+        let (t, p, b): (&mut Node<TK>, _, _) = unsafe {
             let mut b = 0;
             let mut p = None;
             while (&*t).is_branch() {
-                b = (&*t).twigbit(key);
+                b = (&*t).twigbit(key.as_ref());
                 if !(&*t).has_twig(b) {
                     return false;
                 }
@@ -348,10 +354,10 @@ impl Trie {
             Node::Leaf(ref leaf) => leaf,
             _ => unreachable!(),
         };
-        if leaf.key != key {
+        if leaf.key != *key {
             return false;
         }
-        let t: &mut Node = match p {
+        let t: &mut Node<TK> = match p {
             None => {
                 self.root = None;
                 return true;
@@ -374,22 +380,22 @@ impl Trie {
         true
     }
 
-    pub fn prefix_iter<'s>(&'s self, key: &'s [u8]) -> TrieIterator {
+    pub fn prefix_iter<'s>(&'s self, key: &'s TK) -> TrieIterator<TK> {
         TrieIterator {
             t: self.root.as_ref().unwrap(),
-            key: key,
+            key: key.as_ref(),
             gt: false,
         }
     }
 }
 
-pub struct TrieIterator<'s> {
-    t: &'s Node,
+pub struct TrieIterator<'s, TK: 's + Clone + Eq + PartialEq + AsRef<[u8]>> {
+    t: &'s Node<TK>,
     key: &'s [u8],
     gt: bool,
 }
 
-impl<'s> TrieIterator<'s> {
+impl<'s, TK: Clone + Eq + PartialEq + AsRef<[u8]>> TrieIterator<'s, TK> {
     #[inline]
     pub fn different(mut self) -> Self {
         self.gt = true;
@@ -397,8 +403,8 @@ impl<'s> TrieIterator<'s> {
     }
 }
 
-impl<'s> Iterator for TrieIterator<'s> {
-    type Item = (&'s Vec<u8>, &'s [u8]);
+impl<'s, TK: Clone + Eq + PartialEq + AsRef<[u8]>> Iterator for TrieIterator<'s, TK> {
+    type Item = (&'s TK, &'s [u8]);
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = if self.gt {
@@ -409,7 +415,7 @@ impl<'s> Iterator for TrieIterator<'s> {
         match res {
             None => None,
             Some((key, value)) => {
-                self.key = key;
+                self.key = key.as_ref();
                 self.gt = true;
                 return Some((key, value));
             }
