@@ -27,37 +27,37 @@ impl FlagsIndex {
 }
 
 #[derive(Clone, Debug)]
-struct Tleaf<TK: Clone + PartialEq + AsRef<[u8]>> {
+struct Tleaf<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
     key: TK,
-    val: Vec<u8>,
+    val: TV,
 }
 
 #[derive(Clone, Debug)]
-struct Tbranch<TK: Clone + PartialEq + AsRef<[u8]>> {
-    twigs: Vec<Node<TK>>,
+struct Tbranch<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
+    twigs: Vec<Node<TK, TV>>,
     flags_index: FlagsIndex,
     bitmap: Tbitmap,
 }
 
 #[derive(Clone, Debug)]
-enum Node<TK: Clone + PartialEq + AsRef<[u8]>> {
-    Leaf(Tleaf<TK>),
-    Branch(Tbranch<TK>),
+enum Node<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
+    Leaf(Tleaf<TK, TV>),
+    Branch(Tbranch<TK, TV>),
 }
 
 #[derive(Default, Debug)]
-pub struct Trie<TK: Clone + PartialEq + AsRef<[u8]>> {
-    root: Option<Node<TK>>,
+pub struct Trie<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
+    root: Option<Node<TK, TV>>,
 }
 
-impl<TK: Clone + PartialEq + AsRef<[u8]>> Tbranch<TK> {
+impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Tbranch<TK, TV> {
     #[inline]
     fn twigoff(&self, b: Tbitmap) -> usize {
         (self.bitmap & (b - 1)).count_ones() as usize
     }
 }
 
-impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
+impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Node<TK, TV> {
     #[inline]
     fn flags_index_get(&self) -> (u8, usize) {
         let branch = match *self {
@@ -87,7 +87,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
         if i >= len {
             return 1;
         }
-        Node::<TK>::nibbit(key[i], flags)
+        Node::<TK, TV>::nibbit(key[i], flags)
     }
 
     #[inline]
@@ -108,7 +108,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
     }
 
     #[inline]
-    fn twig(&self, i: usize) -> &Node<TK> {
+    fn twig(&self, i: usize) -> &Node<TK, TV> {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
             _ => unreachable!(),
@@ -117,7 +117,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
     }
 
     #[inline]
-    fn twig_mut(&mut self, i: usize) -> &mut Node<TK> {
+    fn twig_mut(&mut self, i: usize) -> &mut Node<TK, TV> {
         let branch = match *self {
             Node::Branch(ref mut branch) => branch,
             _ => unreachable!(),
@@ -143,7 +143,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
         (1 as Tbitmap) << ((k & mask) >> shift)
     }
 
-    fn _next_ge<'s>(self: &'s Node<TK>, key: &[u8]) -> Option<(&'s TK, &'s Vec<u8>)> {
+    fn _next_ge<'s>(self: &'s Node<TK, TV>, key: &[u8]) -> Option<(&'s TK, &'s TV)> {
         if self.is_branch() {
             let (s, m) = self.twigoff_max(self.twigbit(key));
             for s in s..m {
@@ -160,7 +160,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
         Some((&leaf.key, &leaf.val))
     }
 
-    fn _next_gt<'s>(self: &'s Node<TK>, key: &[u8]) -> Option<(&'s TK, &'s Vec<u8>)> {
+    fn _next_gt<'s>(self: &'s Node<TK, TV>, key: &[u8]) -> Option<(&'s TK, &'s TV)> {
         if self.is_branch() {
             let (s, m) = self.twigoff_max(self.twigbit(key));
             for s in s..m {
@@ -182,8 +182,8 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
     }
 }
 
-impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
-    pub fn get(&self, key: &TK) -> Option<&Vec<u8>> {
+impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Trie<TK, TV> {
+    pub fn get(&self, key: &TK) -> Option<&TV> {
         let key = key.as_ref();
         if self.root.is_none() {
             return None;
@@ -211,7 +211,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
         Some(&leaf.val)
     }
 
-    pub fn set(&mut self, key: TK, val: Vec<u8>) -> bool {
+    pub fn set(&mut self, key: TK, val: TV) -> bool {
         let len = match key.as_ref().len() {
             0 => panic!("key cannot be empty"),
             len if len >= 0xffffff => panic!("key is too long"),
@@ -228,7 +228,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
             self.root = Some(new_node);
             return true;
         }
-        let mut t: *mut Node<TK> = self.root.as_mut().unwrap();
+        let mut t: *mut Node<TK, TV> = self.root.as_mut().unwrap();
         let t = unsafe {
             while (&*t).is_branch() {
                 let b = (&*t).twigbit(&key.as_ref());
@@ -262,7 +262,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
         let k1 = key.as_ref()[i];
         let k2 = leaf_key.as_ref()[i];
         let f = if (x & 0xf0) != 0 { 1 } else { 2 };
-        let mut t: *mut Node<TK> = self.root.as_mut().unwrap();
+        let mut t: *mut Node<TK, TV> = self.root.as_mut().unwrap();
         let (t, grow_branch) = unsafe {
             let mut grow_branch = false;
             while (&*t).is_branch() {
@@ -284,23 +284,23 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
             key: key,
             val: val,
         });
-        let b1 = Node::<TK>::nibbit(k1, f);
+        let b1 = Node::<TK, TV>::nibbit(k1, f);
         if grow_branch {
             Self::_grow_branch(t, b1, new_node);
         } else {
-            let b2 = Node::<TK>::nibbit(k2, f);
+            let b2 = Node::<TK, TV>::nibbit(k2, f);
             Self::_new_branch(t, b1, b2, f, i, new_node);
         }
         true
     }
 
-    fn _new_branch(t: &mut Node<TK>,
+    fn _new_branch(t: &mut Node<TK, TV>,
                    b1: Tbitmap,
                    b2: Tbitmap,
                    f: u8,
                    i: usize,
-                   new_node: Node<TK>) {
-        let twigs: Vec<Node<TK>> = Vec::with_capacity(2);
+                   new_node: Node<TK, TV>) {
+        let twigs: Vec<Node<TK, TV>> = Vec::with_capacity(2);
         let mut new_t = Tbranch {
             twigs: twigs,
             flags_index: FlagsIndex::new(f, i),
@@ -316,7 +316,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
         *t = Node::Branch(new_t);
     }
 
-    fn _grow_branch(t: &mut Node<TK>, b1: Tbitmap, new_node: Node<TK>) {
+    fn _grow_branch(t: &mut Node<TK, TV>, b1: Tbitmap, new_node: Node<TK, TV>) {
         debug_assert!(!t.has_twig(b1));
         let branch = match *t {
             Node::Branch(ref mut branch) => branch,
@@ -336,8 +336,8 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
             len => len - 1,
         };
         assert_eq!(key.as_ref()[len], 0);
-        let mut t: *mut Node<TK> = self.root.as_mut().unwrap();
-        let (t, p, b): (&mut Node<TK>, _, _) = unsafe {
+        let mut t: *mut Node<TK, TV> = self.root.as_mut().unwrap();
+        let (t, p, b): (&mut Node<TK, TV>, _, _) = unsafe {
             let mut b = 0;
             let mut p = None;
             while (&*t).is_branch() {
@@ -357,7 +357,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
         if leaf.key != *key {
             return false;
         }
-        let t: &mut Node<TK> = match p {
+        let t: &mut Node<TK, TV> = match p {
             None => {
                 self.root = None;
                 return true;
@@ -380,7 +380,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
         true
     }
 
-    pub fn prefix_iter<'s>(&'s self, key: &'s TK) -> TrieIterator<TK> {
+    pub fn prefix_iter<'s>(&'s self, key: &'s TK) -> TrieIterator<TK, TV> {
         TrieIterator {
             t: self.root.as_ref().unwrap(),
             key: key.as_ref(),
@@ -389,13 +389,13 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
     }
 }
 
-pub struct TrieIterator<'s, TK: 's + Clone + PartialEq + AsRef<[u8]>> {
-    t: &'s Node<TK>,
+pub struct TrieIterator<'s, TK: 's + Clone + PartialEq + AsRef<[u8]>, TV: 's + Clone> {
+    t: &'s Node<TK, TV>,
     key: &'s [u8],
     gt: bool,
 }
 
-impl<'s, TK: Clone + PartialEq + AsRef<[u8]>> TrieIterator<'s, TK> {
+impl<'s, TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> TrieIterator<'s, TK, TV> {
     #[inline]
     pub fn different(mut self) -> Self {
         self.gt = true;
@@ -403,8 +403,8 @@ impl<'s, TK: Clone + PartialEq + AsRef<[u8]>> TrieIterator<'s, TK> {
     }
 }
 
-impl<'s, TK: Clone + PartialEq + AsRef<[u8]>> Iterator for TrieIterator<'s, TK> {
-    type Item = (&'s TK, &'s [u8]);
+impl<'s, TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Iterator for TrieIterator<'s, TK, TV> {
+    type Item = (&'s TK, &'s TV);
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = if self.gt {
@@ -414,10 +414,10 @@ impl<'s, TK: Clone + PartialEq + AsRef<[u8]>> Iterator for TrieIterator<'s, TK> 
         };
         match res {
             None => None,
-            Some((key, value)) => {
+            Some((key, val)) => {
                 self.key = key.as_ref();
                 self.gt = true;
-                return Some((key, value));
+                return Some((key, val));
             }
         }
     }
