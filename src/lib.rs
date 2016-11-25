@@ -172,6 +172,58 @@ impl Trie {
         Some(&leaf.val)
     }
 
+    fn _next_ge<'s>(t: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+        if t.is_branch() {
+            let (s, m) = t.twigoff_max(t.twigbit(key));
+            for s in s..m {
+                if let ret @ Some(_) = Self::_next_ge(t.twig(s), key) {
+                    return ret;
+                }
+            }
+            return None;
+        }
+        let leaf = match *t {
+            Node::Leaf(ref leaf) => leaf,
+            _ => unreachable!(),
+        };
+        Some((&leaf.key, &leaf.val))
+    }
+
+    pub fn next_ge<'s>(&'s self, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+        if self.root.is_none() {
+            return None;
+        }
+        Self::_next_ge(self.root.as_ref().unwrap(), key)
+    }
+
+    fn _next_gt<'s>(t: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+        if t.is_branch() {
+            let (s, m) = t.twigoff_max(t.twigbit(key));
+            for s in s..m {
+                if let ret @ Some(_) = Self::_next_gt(t.twig(s), key) {
+                    return ret;
+                }
+            }
+            return None;
+        }
+        let leaf = match *t {
+            Node::Leaf(ref leaf) => leaf,
+            _ => unreachable!(),
+        };
+        if leaf.key == key {
+            None
+        } else {
+            Some((&leaf.key, &leaf.val))
+        }
+    }
+
+    pub fn next_gt<'s>(&'s self, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+        if self.root.is_none() {
+            return None;
+        }
+        Self::_next_gt(self.root.as_ref().unwrap(), key)
+    }
+
     pub fn set(&mut self, key: Vec<u8>, val: Vec<u8>) -> bool {
         let len = match key.len() {
             0 => panic!("key cannot be empty"),
@@ -202,13 +254,13 @@ impl Trie {
             }
             &mut *t
         };
-        let mut i = 0;
-        let mut x = 0;
         let leaf = match *t {
             Node::Leaf(ref mut leaf) => leaf,
             _ => unreachable!(),
         };
         let leaf_key = &leaf.key;
+        let mut i = 0;
+        let mut x = 0;
         while i <= len {
             x = key[i] ^ leaf_key[i];
             if x != 0 {
