@@ -27,37 +27,37 @@ impl FlagsIndex {
 }
 
 #[derive(Clone, Debug)]
-struct Tleaf<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+struct Tleaf<TK: Clone + PartialEq + AsRef<[u8]>> {
     key: TK,
     val: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
-struct Tbranch<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+struct Tbranch<TK: Clone + PartialEq + AsRef<[u8]>> {
     twigs: Vec<Node<TK>>,
     flags_index: FlagsIndex,
     bitmap: Tbitmap,
 }
 
 #[derive(Clone, Debug)]
-enum Node<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+enum Node<TK: Clone + PartialEq + AsRef<[u8]>> {
     Leaf(Tleaf<TK>),
     Branch(Tbranch<TK>),
 }
 
 #[derive(Default, Debug)]
-pub struct Trie<TK: Clone + Eq + PartialEq + AsRef<[u8]>> {
+pub struct Trie<TK: Clone + PartialEq + AsRef<[u8]>> {
     root: Option<Node<TK>>,
 }
 
-impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Tbranch<TK> {
+impl<TK: Clone + PartialEq + AsRef<[u8]>> Tbranch<TK> {
     #[inline]
     fn twigoff(&self, b: Tbitmap) -> usize {
         (self.bitmap & (b - 1)).count_ones() as usize
     }
 }
 
-impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Node<TK> {
+impl<TK: Clone + PartialEq + AsRef<[u8]>> Node<TK> {
     #[inline]
     fn flags_index_get(&self) -> (u8, usize) {
         let branch = match *self {
@@ -182,7 +182,7 @@ impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Node<TK> {
     }
 }
 
-impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Trie<TK> {
+impl<TK: Clone + PartialEq + AsRef<[u8]>> Trie<TK> {
     pub fn get(&self, key: &TK) -> Option<&Vec<u8>> {
         let key = key.as_ref();
         if self.root.is_none() {
@@ -389,13 +389,13 @@ impl<TK: Clone + Eq + PartialEq + AsRef<[u8]>> Trie<TK> {
     }
 }
 
-pub struct TrieIterator<'s, TK: 's + Clone + Eq + PartialEq + AsRef<[u8]>> {
+pub struct TrieIterator<'s, TK: 's + Clone + PartialEq + AsRef<[u8]>> {
     t: &'s Node<TK>,
     key: &'s [u8],
     gt: bool,
 }
 
-impl<'s, TK: Clone + Eq + PartialEq + AsRef<[u8]>> TrieIterator<'s, TK> {
+impl<'s, TK: Clone + PartialEq + AsRef<[u8]>> TrieIterator<'s, TK> {
     #[inline]
     pub fn different(mut self) -> Self {
         self.gt = true;
@@ -403,7 +403,7 @@ impl<'s, TK: Clone + Eq + PartialEq + AsRef<[u8]>> TrieIterator<'s, TK> {
     }
 }
 
-impl<'s, TK: Clone + Eq + PartialEq + AsRef<[u8]>> Iterator for TrieIterator<'s, TK> {
+impl<'s, TK: Clone + PartialEq + AsRef<[u8]>> Iterator for TrieIterator<'s, TK> {
     type Item = (&'s TK, &'s [u8]);
 
     fn next(&mut self) -> Option<Self::Item> {
