@@ -142,6 +142,44 @@ impl Node {
         let shift = (2 - flags) << 2;
         (1 as Tbitmap) << ((k & mask) >> shift)
     }
+
+    fn _next_ge<'s>(self: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+        if self.is_branch() {
+            let (s, m) = self.twigoff_max(self.twigbit(key));
+            for s in s..m {
+                if let ret @ Some(_) = self.twig(s)._next_ge(key) {
+                    return ret;
+                }
+            }
+            return None;
+        }
+        let leaf = match *self {
+            Node::Leaf(ref leaf) => leaf,
+            _ => unreachable!(),
+        };
+        Some((&leaf.key, &leaf.val))
+    }
+
+    fn _next_gt<'s>(self: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
+        if self.is_branch() {
+            let (s, m) = self.twigoff_max(self.twigbit(key));
+            for s in s..m {
+                if let ret @ Some(_) = Self::_next_gt(self.twig(s), key) {
+                    return ret;
+                }
+            }
+            return None;
+        }
+        let leaf = match *self {
+            Node::Leaf(ref leaf) => leaf,
+            _ => unreachable!(),
+        };
+        if leaf.key == key {
+            None
+        } else {
+            Some((&leaf.key, &leaf.val))
+        }
+    }
 }
 
 impl Trie {
@@ -170,58 +208,6 @@ impl Trie {
             return None;
         }
         Some(&leaf.val)
-    }
-
-    fn _next_ge<'s>(t: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
-        if t.is_branch() {
-            let (s, m) = t.twigoff_max(t.twigbit(key));
-            for s in s..m {
-                if let ret @ Some(_) = Self::_next_ge(t.twig(s), key) {
-                    return ret;
-                }
-            }
-            return None;
-        }
-        let leaf = match *t {
-            Node::Leaf(ref leaf) => leaf,
-            _ => unreachable!(),
-        };
-        Some((&leaf.key, &leaf.val))
-    }
-
-    pub fn next_ge<'s>(&'s self, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
-        if self.root.is_none() {
-            return None;
-        }
-        Self::_next_ge(self.root.as_ref().unwrap(), key)
-    }
-
-    fn _next_gt<'s>(t: &'s Node, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
-        if t.is_branch() {
-            let (s, m) = t.twigoff_max(t.twigbit(key));
-            for s in s..m {
-                if let ret @ Some(_) = Self::_next_gt(t.twig(s), key) {
-                    return ret;
-                }
-            }
-            return None;
-        }
-        let leaf = match *t {
-            Node::Leaf(ref leaf) => leaf,
-            _ => unreachable!(),
-        };
-        if leaf.key == key {
-            None
-        } else {
-            Some((&leaf.key, &leaf.val))
-        }
-    }
-
-    pub fn next_gt<'s>(&'s self, key: &[u8]) -> Option<(&'s Vec<u8>, &'s Vec<u8>)> {
-        if self.root.is_none() {
-            return None;
-        }
-        Self::_next_gt(self.root.as_ref().unwrap(), key)
     }
 
     pub fn set(&mut self, key: Vec<u8>, val: Vec<u8>) -> bool {
@@ -386,5 +372,47 @@ impl Trie {
             branch.bitmap &= !b;
         }
         true
+    }
+
+    pub fn find<'s>(&'s self, key: &'s [u8]) -> TrieIterator {
+        TrieIterator {
+            t: self.root.as_ref().unwrap(),
+            key: key,
+            gt: false,
+        }
+    }
+}
+
+pub struct TrieIterator<'s> {
+    t: &'s Node,
+    key: &'s [u8],
+    gt: bool,
+}
+
+impl<'s> TrieIterator<'s> {
+    #[inline]
+    pub fn different(mut self) -> Self {
+        self.gt = true;
+        self
+    }
+}
+
+impl<'s> Iterator for TrieIterator<'s> {
+    type Item = (&'s Vec<u8>, &'s [u8]);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let res = if self.gt {
+            self.t._next_gt(self.key)
+        } else {
+            self.t._next_ge(self.key)
+        };
+        match res {
+            None => None,
+            Some((key, value)) => {
+                self.key = key;
+                self.gt = true;
+                return Some((key, value));
+            }
+        }
     }
 }
