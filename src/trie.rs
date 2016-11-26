@@ -2,7 +2,7 @@
 use iterator::TrieIterator;
 use std::{mem, str};
 
-type Tbitmap = u16;
+type Bitmap = u16;
 
 #[derive(Copy, Clone, Debug)]
 struct FlagsIndex(u32);
@@ -26,22 +26,22 @@ impl FlagsIndex {
 }
 
 #[derive(Debug)]
-pub struct Tleaf<TK: PartialEq + AsRef<[u8]>, TV> {
+pub struct Leaf<TK: PartialEq + AsRef<[u8]>, TV> {
     key: TK,
     val: TV,
 }
 
 #[derive(Debug)]
-pub struct Tbranch<TK: PartialEq + AsRef<[u8]>, TV> {
+pub struct Branch<TK: PartialEq + AsRef<[u8]>, TV> {
     twigs: Vec<Node<TK, TV>>,
     flags_index: FlagsIndex,
-    bitmap: Tbitmap,
+    bitmap: Bitmap,
 }
 
 #[derive(Debug)]
 pub enum Node<TK: PartialEq + AsRef<[u8]>, TV> {
-    Leaf(Tleaf<TK, TV>),
-    Branch(Tbranch<TK, TV>),
+    Leaf(Leaf<TK, TV>),
+    Branch(Branch<TK, TV>),
     Empty,
 }
 
@@ -50,9 +50,9 @@ pub struct Trie<TK: PartialEq + AsRef<[u8]>, TV> {
     root: Option<Node<TK, TV>>,
 }
 
-impl<TK: PartialEq + AsRef<[u8]>, TV> Tbranch<TK, TV> {
+impl<TK: PartialEq + AsRef<[u8]>, TV> Branch<TK, TV> {
     #[inline]
-    fn twigoff(&self, b: Tbitmap) -> usize {
+    fn twigoff(&self, b: Bitmap) -> usize {
         (self.bitmap & (b - 1)).count_ones() as usize
     }
 }
@@ -77,7 +77,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     }
 
     #[inline]
-    fn twigbit(&self, key: &[u8]) -> Tbitmap {
+    fn twigbit(&self, key: &[u8]) -> Bitmap {
         let len = key.len() - 1;
         let (flags, index) = self.flags_index_get();
         let i = index as usize;
@@ -88,7 +88,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     }
 
     #[inline]
-    fn has_twig(&self, bit: Tbitmap) -> bool {
+    fn has_twig(&self, bit: Bitmap) -> bool {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
             _ => unreachable!(),
@@ -97,7 +97,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     }
 
     #[inline]
-    fn twigoff(&self, b: Tbitmap) -> usize {
+    fn twigoff(&self, b: Bitmap) -> usize {
         match *self {
             Node::Branch(ref branch) => branch.twigoff(b),
             _ => unreachable!(),
@@ -123,7 +123,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     }
 
     #[inline]
-    fn twigoff_max(&self, b: Tbitmap) -> (usize, usize) {
+    fn twigoff_max(&self, b: Bitmap) -> (usize, usize) {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
             _ => unreachable!(),
@@ -134,10 +134,10 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     }
 
     #[inline]
-    fn nibbit(k: u8, flags: u8) -> Tbitmap {
+    fn nibbit(k: u8, flags: u8) -> Bitmap {
         let mask = ((flags.wrapping_sub(2)) ^ 0x0f) & 0xff;
         let shift = (2 - flags) << 2;
-        (1 as Tbitmap) << ((k & mask) >> shift)
+        (1 as Bitmap) << ((k & mask) >> shift)
     }
 
     pub fn next_ge<'s>(self: &'s Node<TK, TV>, key: &[u8]) -> Option<(&'s TK, &'s TV)> {
@@ -218,7 +218,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             panic!("key must be zero-terminated")
         }
         if self.root.is_none() {
-            let new_node = Node::Leaf(Tleaf {
+            let new_node = Node::Leaf(Leaf {
                 key: key,
                 val: val,
             });
@@ -277,7 +277,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             }
             (&mut *t, grow_branch)
         };
-        let new_node = Node::Leaf(Tleaf {
+        let new_node = Node::Leaf(Leaf {
             key: key,
             val: val,
         });
@@ -292,13 +292,13 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
     }
 
     fn _new_branch(t: &mut Node<TK, TV>,
-                   b1: Tbitmap,
-                   b2: Tbitmap,
+                   b1: Bitmap,
+                   b2: Bitmap,
                    f: u8,
                    i: usize,
                    new_node: Node<TK, TV>) {
         let twigs: Vec<Node<TK, TV>> = Vec::with_capacity(2);
-        let mut new_t = Tbranch {
+        let mut new_t = Branch {
             twigs: twigs,
             flags_index: FlagsIndex::new(f, i),
             bitmap: b1 | b2,
@@ -314,7 +314,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         *t = Node::Branch(new_t);
     }
 
-    fn _grow_branch(t: &mut Node<TK, TV>, b1: Tbitmap, new_node: Node<TK, TV>) {
+    fn _grow_branch(t: &mut Node<TK, TV>, b1: Bitmap, new_node: Node<TK, TV>) {
         debug_assert!(!t.has_twig(b1));
         let branch = match *t {
             Node::Branch(ref mut branch) => branch,
