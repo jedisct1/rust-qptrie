@@ -243,12 +243,8 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         let (mut k1, mut k2) = (0, 0);
         let leaf_key_len = leaf_key.as_ref().len();
         while i <= key_len {
-            k1 = if i < key_len { key.as_ref()[i] } else { 0 };
-            k2 = if i < leaf_key_len {
-                leaf_key.as_ref()[i]
-            } else {
-                0
-            };
+            k1 = Self::_get_with_implicit_zero(key.as_ref(), key_len, i);
+            k2 = Self::_get_with_implicit_zero(leaf_key.as_ref(), leaf_key_len, i);
             x = k1 ^ k2;
             if x != 0 {
                 break;
@@ -290,6 +286,11 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             Self::_new_branch(t, b1, b2, f, i, new_node);
         }
         true
+    }
+
+    #[inline]
+    fn _get_with_implicit_zero(key: &[u8], key_len: usize, i: usize) -> u8 {
+        if i < key_len { key[i] } else { 0 }
     }
 
     fn _new_branch(t: &mut Node<TK, TV>,
