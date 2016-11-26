@@ -232,7 +232,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         let mut t: *mut Node<TK, TV> = self.root.as_mut().unwrap();
         let t = unsafe {
             while (&*t).is_branch() {
-                let b = (&*t).twigbit(&key.as_ref());
+                let b = (&*t).twigbit(key.as_ref());
                 let i = if (&*t).has_twig(b) {
                     (&*t).twigoff(b)
                 } else {
@@ -275,7 +275,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
                 if (i == index && f < flags) || i < index {
                     break;
                 }
-                let b = (&*t).twigbit(&key.as_ref());
+                let b = (&*t).twigbit(key.as_ref());
                 debug_assert!((&*t).has_twig(b));
                 t = (&mut *t).twig_mut((&*t).twigoff(b));
             }
@@ -418,7 +418,7 @@ impl<'s, TK: PartialEq + AsRef<[u8]>, TV> Iterator for TrieIterator<'s, TK, TV> 
             Some((key, val)) => {
                 self.key = key.as_ref();
                 self.gt = true;
-                return Some((key, val));
+                Some((key, val))
             }
         }
     }
