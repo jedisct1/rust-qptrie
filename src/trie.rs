@@ -71,10 +71,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     #[inline]
     fn is_branch(&self) -> bool {
         match *self {
-            Node::Branch(ref branch) => {
-                debug_assert_eq!((branch.flags_index.flags_get() & 1), 1);
-                true
-            }
+            Node::Branch(_) => true,
             _ => false,
         }
     }
