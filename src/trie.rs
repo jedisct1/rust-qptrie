@@ -211,7 +211,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         Some(&leaf.val)
     }
 
-    pub fn set(&mut self, key: TK, val: TV) -> bool {
+    pub fn insert(&mut self, key: TK, val: TV) -> bool {
         let len = match key.as_ref().len() {
             0 => panic!("key cannot be empty"),
             len if len >= 0xffffff => panic!("key is too long"),
@@ -328,12 +328,12 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         branch.bitmap |= b1;
     }
 
-    pub fn del(&mut self, key: &TK) -> bool {
+    pub fn remove(&mut self, key: &TK) -> Option<TV> {
         if self.root.is_none() {
-            return false;
+            return None;
         }
         let len = match key.as_ref().len() {
-            0 => return false,
+            0 => return None,
             len => len - 1,
         };
         assert_eq!(key.as_ref()[len], 0);
@@ -344,32 +344,36 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             while (&*t).is_branch() {
                 b = (&*t).twigbit(key.as_ref());
                 if !(&*t).has_twig(b) {
-                    return false;
+                    return None;
                 }
                 p = Some(t);
                 t = (&mut *t).twig_mut((&*t).twigoff(b));
             }
             (&mut *t, p, b)
         };
-        let leaf = match *t {
-            Node::Leaf(ref leaf) => leaf,
+        match *t {
+            Node::Leaf(ref leaf) => {
+                if leaf.key != *key {
+                    return None;
+                }
+            }
+            _ => unreachable!(),
+        }
+        let val = match mem::replace(t, Node::Empty) {
+            Node::Leaf(leaf) => leaf.val,
             _ => unreachable!(),
         };
-        if leaf.key != *key {
-            return false;
-        }
-        let t: &mut Node<TK, TV> = match p {
+        let t2: &mut Node<TK, TV> = match p {
             None => {
-                self.root = None;
-                return true;
+                return Some(val);
             }
-            Some(t) => unsafe { &mut *t },
+            Some(t2) => unsafe { &mut *t2 },
         };
         let (s, m) = t.twigoff_max(b);
         if m == 2 {
-            *t = mem::replace(t.twig_mut(1 - s), Node::Empty);
+            *t2 = mem::replace(t2.twig_mut(1 - s), Node::Empty);
         } else {
-            let branch = match *t {
+            let branch = match *t2 {
                 Node::Branch(ref mut branch) => branch,
                 _ => unreachable!(),
             };
@@ -377,7 +381,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             branch.twigs.shrink_to_fit();
             branch.bitmap &= !b;
         }
-        true
+        Some(val)
     }
 
     pub fn prefix_iter<'s>(&'s self, key: &'s TK) -> TrieIterator<TK, TV> {
