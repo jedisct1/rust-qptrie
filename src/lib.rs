@@ -1,7 +1,7 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
-use std::str;
+use std::{mem, str};
 
 type Tbitmap = u16;
 
@@ -26,38 +26,39 @@ impl FlagsIndex {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Tleaf<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
+#[derive(Debug)]
+struct Tleaf<TK: PartialEq + AsRef<[u8]>, TV> {
     key: TK,
     val: TV,
 }
 
-#[derive(Clone, Debug)]
-struct Tbranch<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
+#[derive(Debug)]
+struct Tbranch<TK: PartialEq + AsRef<[u8]>, TV> {
     twigs: Vec<Node<TK, TV>>,
     flags_index: FlagsIndex,
     bitmap: Tbitmap,
 }
 
-#[derive(Clone, Debug)]
-enum Node<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
+#[derive(Debug)]
+enum Node<TK: PartialEq + AsRef<[u8]>, TV> {
     Leaf(Tleaf<TK, TV>),
     Branch(Tbranch<TK, TV>),
+    Empty,
 }
 
 #[derive(Default, Debug)]
-pub struct Trie<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> {
+pub struct Trie<TK: PartialEq + AsRef<[u8]>, TV> {
     root: Option<Node<TK, TV>>,
 }
 
-impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Tbranch<TK, TV> {
+impl<TK: PartialEq + AsRef<[u8]>, TV> Tbranch<TK, TV> {
     #[inline]
     fn twigoff(&self, b: Tbitmap) -> usize {
         (self.bitmap & (b - 1)).count_ones() as usize
     }
 }
 
-impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Node<TK, TV> {
+impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     #[inline]
     fn flags_index_get(&self) -> (u8, usize) {
         let branch = match *self {
@@ -71,11 +72,11 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Node<TK, TV> {
     #[inline]
     fn is_branch(&self) -> bool {
         match *self {
-            Node::Leaf(_) => false,
             Node::Branch(ref branch) => {
                 debug_assert_eq!((branch.flags_index.flags_get() & 1), 1);
                 true
             }
+            _ => false,
         }
     }
 
@@ -182,7 +183,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Node<TK, TV> {
     }
 }
 
-impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Trie<TK, TV> {
+impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
     pub fn get(&self, key: &TK) -> Option<&TV> {
         let key = key.as_ref();
         if self.root.is_none() {
@@ -306,11 +307,12 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Trie<TK, TV> {
             flags_index: FlagsIndex::new(f, i),
             bitmap: b1 | b2,
         };
+        let t_save = mem::replace(t, Node::Empty);
         if new_t.twigoff(b1) == 0 {
             new_t.twigs.push(new_node);
-            new_t.twigs.push(t.clone());
+            new_t.twigs.push(t_save);
         } else {
-            new_t.twigs.push(t.clone());
+            new_t.twigs.push(t_save);
             new_t.twigs.push(new_node);
         }
         *t = Node::Branch(new_t);
@@ -366,8 +368,7 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Trie<TK, TV> {
         };
         let (s, m) = t.twigoff_max(b);
         if m == 2 {
-            let t2 = t.twig(1 - s).clone();
-            *t = t2;
+            *t = mem::replace(t.twig_mut(1 - s), Node::Empty);
         } else {
             let branch = match *t {
                 Node::Branch(ref mut branch) => branch,
@@ -389,13 +390,13 @@ impl<TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Trie<TK, TV> {
     }
 }
 
-pub struct TrieIterator<'s, TK: 's + Clone + PartialEq + AsRef<[u8]>, TV: 's + Clone> {
+pub struct TrieIterator<'s, TK: 's + PartialEq + AsRef<[u8]>, TV: 's> {
     t: &'s Node<TK, TV>,
     key: &'s [u8],
     gt: bool,
 }
 
-impl<'s, TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> TrieIterator<'s, TK, TV> {
+impl<'s, TK: PartialEq + AsRef<[u8]>, TV> TrieIterator<'s, TK, TV> {
     #[inline]
     pub fn different(mut self) -> Self {
         self.gt = true;
@@ -403,7 +404,7 @@ impl<'s, TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> TrieIterator<'s, TK, TV
     }
 }
 
-impl<'s, TK: Clone + PartialEq + AsRef<[u8]>, TV: Clone> Iterator for TrieIterator<'s, TK, TV> {
+impl<'s, TK: PartialEq + AsRef<[u8]>, TV> Iterator for TrieIterator<'s, TK, TV> {
     type Item = (&'s TK, &'s TV);
 
     fn next(&mut self) -> Option<Self::Item> {
