@@ -78,10 +78,10 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
 
     #[inline]
     fn twigbit(&self, key: &[u8]) -> Bitmap {
-        let len = key.len() - 1;
+        let key_len = key.len();
         let (flags, index) = self.flags_index_get();
         let i = index as usize;
-        if i >= len {
+        if i >= key_len {
             return 1;
         }
         Node::<TK, TV>::nibbit(key[i], flags)
@@ -185,11 +185,9 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         if self.root.is_none() {
             return None;
         }
-        let len = match key.len() {
-            0 => return None,
-            len => len - 1,
-        };
-        assert_eq!(key[len], 0);
+        if key.len() == 0 {
+            return None;
+        }
         let mut t = self.root.as_ref().unwrap();
         while t.is_branch() {
             let b = t.twigbit(key);
@@ -209,14 +207,11 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
     }
 
     pub fn insert(&mut self, key: TK, val: TV) -> bool {
-        let len = match key.as_ref().len() {
+        let key_len = match key.as_ref().len() {
             0 => panic!("key cannot be empty"),
-            len if len >= 0xffffff => panic!("key is too long"),
-            len => len - 1,
+            key_len if key_len > 0xffffff => panic!("key is too long"),
+            key_len => key_len,
         };
-        if key.as_ref()[len] != 0 {
-            panic!("key must be zero-terminated")
-        }
         if self.root.is_none() {
             let new_node = Node::Leaf(Leaf {
                 key: key,
@@ -245,8 +240,16 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         let leaf_key = &leaf.key;
         let mut i = 0;
         let mut x = 0;
-        while i <= len {
-            x = key.as_ref()[i] ^ leaf_key.as_ref()[i];
+        let (mut k1, mut k2) = (0, 0);
+        let (key_len, leaf_key_len) = (key.as_ref().len(), leaf_key.as_ref().len());
+        while i <= key_len {
+            k1 = if i < key_len { key.as_ref()[i] } else { 0 };
+            k2 = if i < leaf_key_len {
+                leaf_key.as_ref()[i]
+            } else {
+                0
+            };
+            x = k1 ^ k2;
             if x != 0 {
                 break;
             }
@@ -256,8 +259,6 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             leaf.val = val;
             return false;
         }
-        let k1 = key.as_ref()[i];
-        let k2 = leaf_key.as_ref()[i];
         let f = if (x & 0xf0) != 0 { 1 } else { 2 };
         let mut t: *mut Node<TK, TV> = self.root.as_mut().unwrap();
         let (t, grow_branch) = unsafe {
@@ -326,14 +327,9 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
     }
 
     pub fn remove(&mut self, key: &TK) -> Option<TV> {
-        if self.root.is_none() {
+        if self.root.is_none() || key.as_ref().len() == 0 {
             return None;
         }
-        let len = match key.as_ref().len() {
-            0 => return None,
-            len => len - 1,
-        };
-        assert_eq!(key.as_ref()[len], 0);
         let mut t: *mut Node<TK, TV> = self.root.as_mut().unwrap();
         let (t, p, b): (&mut Node<TK, TV>, _, _) = unsafe {
             let mut b = 0;
