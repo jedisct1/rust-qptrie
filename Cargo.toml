@@ -5,6 +5,7 @@ authors = ["Frank Denis <github@pureftpd.org>"]
 
 [dependencies]
 clippy = {version = "*", optional = true}
+debug_unreachable = "~0"
 
 [profile.release]
 lto = true

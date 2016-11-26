@@ -62,7 +62,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     fn flags_index_get(&self) -> (u8, usize) {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         let flags_index = branch.flags_index;
         (flags_index.flags_get(), flags_index.index_get())
@@ -91,7 +91,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     fn has_twig(&self, bit: Bitmap) -> bool {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         (branch.bitmap & bit) != 0
     }
@@ -100,7 +100,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     fn twigoff(&self, b: Bitmap) -> usize {
         match *self {
             Node::Branch(ref branch) => branch.twigoff(b),
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         }
     }
 
@@ -108,7 +108,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     fn twig(&self, i: usize) -> &Node<TK, TV> {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         &branch.twigs[i]
     }
@@ -117,7 +117,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     fn twig_mut(&mut self, i: usize) -> &mut Node<TK, TV> {
         let branch = match *self {
             Node::Branch(ref mut branch) => branch,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         &mut branch.twigs[i]
     }
@@ -126,7 +126,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     fn twigoff_max(&self, b: Bitmap) -> (usize, usize) {
         let branch = match *self {
             Node::Branch(ref branch) => branch,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         let off = self.twigoff(b);
         let max = branch.bitmap.count_ones() as usize;
@@ -152,7 +152,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
         }
         let leaf = match *self {
             Node::Leaf(ref leaf) => leaf,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         Some((&leaf.key, &leaf.val))
     }
@@ -169,7 +169,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
         }
         let leaf = match *self {
             Node::Leaf(ref leaf) => leaf,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         if leaf.key.as_ref() == key {
             None
@@ -198,7 +198,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         }
         let leaf = match *t {
             Node::Leaf(ref leaf) => leaf,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         if leaf.key.as_ref() != key {
             return None;
@@ -235,13 +235,13 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         };
         let leaf = match *t {
             Node::Leaf(ref mut leaf) => leaf,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         let leaf_key = &leaf.key;
         let mut i = 0;
         let mut x = 0;
         let (mut k1, mut k2) = (0, 0);
-        let (key_len, leaf_key_len) = (key.as_ref().len(), leaf_key.as_ref().len());
+        let leaf_key_len = leaf_key.as_ref().len();
         while i <= key_len {
             k1 = if i < key_len { key.as_ref()[i] } else { 0 };
             k2 = if i < leaf_key_len {
@@ -319,7 +319,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         debug_assert!(!t.has_twig(b1));
         let branch = match *t {
             Node::Branch(ref mut branch) => branch,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         let s = branch.twigoff(b1);
         branch.twigs.insert(s, new_node);
@@ -350,11 +350,11 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
                     return None;
                 }
             }
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         }
         let val = match mem::replace(t, Node::Empty) {
             Node::Leaf(leaf) => leaf.val,
-            _ => unreachable!(),
+            _ => unsafe { debug_unreachable!() },
         };
         let t2: &mut Node<TK, TV> = match p {
             None => {
@@ -368,7 +368,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         } else {
             let branch = match *t2 {
                 Node::Branch(ref mut branch) => branch,
-                _ => unreachable!(),
+                _ => unsafe { debug_unreachable!() },
             };
             branch.twigs.remove(s);
             branch.twigs.shrink_to_fit();
