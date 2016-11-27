@@ -213,11 +213,10 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             key_len => key_len,
         };
         if self.root.is_none() {
-            let new_node = Node::Leaf(Leaf {
+            self.root = Some(Node::Leaf(Leaf {
                 key: key,
                 val: val,
-            });
-            self.root = Some(new_node);
+            }));
             return true;
         }
         let mut t: *mut Node<TK, TV> = self.root.as_mut().unwrap();
@@ -358,9 +357,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             _ => unsafe { debug_unreachable!() },
         };
         let t2: &mut Node<TK, TV> = match p {
-            None => {
-                return Some(val);
-            }
+            None => return Some(val),
             Some(t2) => unsafe { &mut *t2 },
         };
         let (s, m) = t.twigoff_max(b);
