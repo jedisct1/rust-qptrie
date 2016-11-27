@@ -1,7 +1,11 @@
 [package]
 name = "qptrie"
 version = "0.1.0"
+description = "A QP-Trie implementation for Rust"
+license = "ISC"
 authors = ["Frank Denis <github@pureftpd.org>"]
+homepage = "https://github.com/jedisct1/rust-qptrie"
+repository = "https://github.com/jedisct1/rust-qptrie"
 
 [dependencies]
 clippy = {version = "*", optional = true}
