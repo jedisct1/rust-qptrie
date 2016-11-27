@@ -7,5 +7,5 @@ extern crate debug_unreachable;
 mod iterator;
 mod trie;
 
-pub use iterator::TrieIterator;
+pub use iterator::{TrieIterator, TriePrefixIterator};
 pub use trie::Trie;

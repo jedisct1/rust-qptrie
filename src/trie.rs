@@ -1,5 +1,5 @@
 
-use iterator::TrieIterator;
+use iterator::{TrieIterator, TriePrefixIterator};
 use std::{mem, str};
 
 type Bitmap = u16;
@@ -375,7 +375,11 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         Some(val)
     }
 
-    pub fn prefix_iter<'s>(&'s self, key: &'s TK) -> TrieIterator<TK, TV> {
+    pub fn iter<'s>(&'s self, key: &'s TK) -> TrieIterator<TK, TV> {
         TrieIterator::new(self.root.as_ref().unwrap(), key.as_ref(), false)
+    }
+
+    pub fn prefix_iter<'s>(&'s self, key: &'s TK) -> TriePrefixIterator<TK, TV> {
+        TriePrefixIterator::new(self.root.as_ref().unwrap(), key.as_ref(), false)
     }
 }
