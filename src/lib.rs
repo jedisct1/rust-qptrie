@@ -5,7 +5,9 @@
 extern crate debug_unreachable;
 
 mod iterator;
+mod node;
+mod sparse_array;
 mod trie;
 
-pub use iterator::{TrieIterator, TriePrefixIterator};
+pub use iterator::TriePrefixIterator;
 pub use trie::Trie;

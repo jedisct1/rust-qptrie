@@ -1,93 +1,46 @@
-use trie::Node;
+use node::Node;
+use ::Trie;
 
-pub struct TrieIterator<'s, TK: 's + PartialEq + AsRef<[u8]>, TV: 's> {
-    t: &'s Node<TK, TV>,
-    key: &'s [u8],
-    gt: bool,
+pub struct TriePrefixIterator<'t, TK: 't + PartialEq + AsRef<[u8]>, TV: 't> {
+    trie: &'t Trie<TK, TV>,
+    prefix: &'t TK,
+    todo: Vec<&'t Node<TK, TV>>,
+    include_prefix: bool,
 }
 
-impl<'s, TK: 's + PartialEq + AsRef<[u8]>, TV: 's> TrieIterator<'s, TK, TV> {
+impl<'t, TK: 't + PartialEq + AsRef<[u8]>, TV: 't> TriePrefixIterator<'t, TK, TV> {
     #[inline]
-    pub fn new(t: &'s Node<TK, TV>, key: &'s [u8], gt: bool) -> Self {
-        TrieIterator {
-            t: t,
-            key: key,
-            gt: gt,
-        }
-    }
-}
-
-impl<'s, TK: PartialEq + AsRef<[u8]>, TV> TrieIterator<'s, TK, TV> {
-    #[inline]
-    pub fn different(mut self) -> Self {
-        self.gt = true;
-        self
-    }
-}
-
-impl<'s, TK: PartialEq + AsRef<[u8]>, TV> Iterator for TrieIterator<'s, TK, TV> {
-    type Item = (&'s TK, &'s TV);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let res = if self.gt {
-            self.t.next_gt(self.key)
-        } else {
-            self.t.next_ge(self.key)
+    pub fn new(trie: &'t Trie<TK, TV>, key: &'t TK, include_prefix: bool) -> Self {
+        let todo = match trie.root() {
+            None => vec![],
+            Some(root) => vec![root],
         };
-        match res {
-            None => None,
-            Some((key, val)) => {
-                self.key = key.as_ref();
-                self.gt = true;
-                Some((key, val))
-            }
-        }
-    }
-}
-
-pub struct TriePrefixIterator<'s, TK: 's + PartialEq + AsRef<[u8]>, TV: 's> {
-    t: &'s Node<TK, TV>,
-    prefix: &'s [u8],
-    key: &'s [u8],
-    gt: bool,
-}
-
-impl<'s, TK: 's + PartialEq + AsRef<[u8]>, TV: 's> TriePrefixIterator<'s, TK, TV> {
-    #[inline]
-    pub fn new(t: &'s Node<TK, TV>, key: &'s [u8], gt: bool) -> Self {
         TriePrefixIterator {
-            t: t,
+            trie: trie,
             prefix: key,
-            key: key,
-            gt: gt,
+            todo: todo,
+            include_prefix: include_prefix,
         }
     }
 }
 
-impl<'s, TK: PartialEq + AsRef<[u8]>, TV> TriePrefixIterator<'s, TK, TV> {
+impl<'t, TK: PartialEq + AsRef<[u8]>, TV> TriePrefixIterator<'t, TK, TV> {
     #[inline]
-    pub fn different(mut self) -> Self {
-        self.gt = true;
+    pub fn include_prefix(mut self) -> Self {
+        self.include_prefix = true;
         self
     }
 }
 
-impl<'s, TK: PartialEq + AsRef<[u8]>, TV> Iterator for TriePrefixIterator<'s, TK, TV> {
-    type Item = (&'s TK, &'s TV);
+impl<'t, TK: PartialEq + AsRef<[u8]>, TV> Iterator for TriePrefixIterator<'t, TK, TV> {
+    type Item = (&'t TK, &'t TV);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let res = if self.gt {
-            self.t.next_gt(self.key)
-        } else {
-            self.t.next_ge(self.key)
-        };
-        match res {
+        match self.trie.prefix_find_next(self.prefix, &mut self.todo, self.include_prefix) {
             None => None,
-            Some((key, _)) if !key.as_ref().starts_with(self.prefix) => None,
-            Some((key, val)) => {
-                self.key = key.as_ref();
-                self.gt = true;
-                Some((key, val))
+            Some(leaf) => {
+                self.include_prefix = false;
+                Some((&leaf.key, &leaf.val))
             }
         }
     }
