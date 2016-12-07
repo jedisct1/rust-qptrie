@@ -9,7 +9,6 @@ pub struct TriePrefixIterator<'t, TK: 't + PartialEq + AsRef<[u8]>, TV: 't> {
 }
 
 impl<'t, TK: 't + PartialEq + AsRef<[u8]>, TV: 't> TriePrefixIterator<'t, TK, TV> {
-    #[inline]
     pub fn new(trie: &'t Trie<TK, TV>, key: &'t TK, include_prefix: bool) -> Self {
         let todo = match trie.root() {
             None => vec![],
