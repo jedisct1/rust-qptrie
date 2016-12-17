@@ -46,7 +46,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         unsafe {
             while let Node::Internal(ref mut internal) = *t {
                 let internal_index = internal.index;
-                let nibble = Self::nibble(&key, internal_index);
+                let nibble = Self::nibble(key, internal_index);
                 t = internal.nibbles.get_or_head_mut(nibble);
                 height += 1;
             }
@@ -60,7 +60,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         let mut t: &Node<TK, TV> = root;
         while let Node::Internal(ref internal) = *t {
             let internal_index = internal.index;
-            let nibble = Self::nibble(&key, internal_index);
+            let nibble = Self::nibble(key, internal_index);
             t = internal.nibbles.get_or_head(nibble);
             height += 1;
         }
@@ -72,7 +72,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         unsafe {
             while let Node::Internal(ref mut internal) = *t {
                 let internal_index = internal.index;
-                let nibble = Self::nibble(&key, internal_index);
+                let nibble = Self::nibble(key, internal_index);
                 t = match internal.nibbles.get_mut(nibble) {
                     None => return None,
                     Some(t) => t,
@@ -90,7 +90,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         let mut t: &Node<TK, TV> = root;
         while let Node::Internal(ref internal) = *t {
             let internal_index = internal.index;
-            let nibble = Self::nibble(&key, internal_index);
+            let nibble = Self::nibble(key, internal_index);
             t = match internal.nibbles.get(nibble) {
                 None => return None,
                 Some(t) => t,
@@ -321,7 +321,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
                 Node::Leaf(ref leaf) => {
                     if leaf.key.as_ref().starts_with(prefix.as_ref()) {
                         if include_prefix || leaf.key.as_ref() != prefix.as_ref() {
-                            return Some(&leaf);
+                            return Some(leaf);
                         }
                     }
                 }
@@ -345,6 +345,6 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
 
     /// Creates a new iterator over all the nodes whose key includes `prefix` as a prefix.
     pub fn prefix_iter<'t>(&'t self, prefix: &'t TK) -> TriePrefixIterator<TK, TV> {
-        TriePrefixIterator::new(&self, prefix, false)
+        TriePrefixIterator::new(self, prefix, false)
     }
 }
