@@ -180,7 +180,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
             self.root = Some(Node::Leaf(leaf));
             return true;
         }
-        let (mut leaf, height) = unsafe {
+        let (leaf, height) = unsafe {
             let closest = Self::find_closest_leaf_mut(self.root.as_mut().unwrap(), key.as_ref());
             (&mut *closest.0, closest.1)
         };
