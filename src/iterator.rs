@@ -1,5 +1,5 @@
 use node::Node;
-use ::Trie;
+use Trie;
 
 /// An iterator over keys matching a prefix.
 #[derive(Clone, Debug)]
@@ -38,7 +38,9 @@ impl<'t, TK: PartialEq + AsRef<[u8]>, TV> Iterator for TriePrefixIterator<'t, TK
     type Item = (&'t TK, &'t TV);
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.trie.prefix_find_next(self.prefix, &mut self.todo, self.include_prefix) {
+        match self.trie
+            .prefix_find_next(self.prefix, &mut self.todo, self.include_prefix)
+        {
             None => None,
             Some(leaf) => {
                 self.include_prefix = false;

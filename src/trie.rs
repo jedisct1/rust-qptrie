@@ -1,5 +1,5 @@
 use iterator::TriePrefixIterator;
-use node::{Node, InternalNode, LeafNode};
+use node::{InternalNode, LeafNode, Node};
 use sparse_array::SparseArray;
 use std::usize;
 
@@ -38,9 +38,10 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         }
     }
 
-    fn find_closest_leaf_mut(root: &mut Node<TK, TV>,
-                             key: &[u8])
-                             -> (*mut LeafNode<TK, TV>, usize) {
+    fn find_closest_leaf_mut(
+        root: &mut Node<TK, TV>,
+        key: &[u8],
+    ) -> (*mut LeafNode<TK, TV>, usize) {
         let mut height = 0;
         let mut t: *mut Node<TK, TV> = root;
         unsafe {
@@ -103,21 +104,20 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         Some(leaf)
     }
 
-    fn new_internal_for_shorter_index(t: *mut Node<TK, TV>,
-                                      leaf_key: &TK,
-                                      index: usize,
-                                      key: TK,
-                                      val: TV) {
+    fn new_internal_for_shorter_index(
+        t: *mut Node<TK, TV>,
+        leaf_key: &TK,
+        index: usize,
+        key: TK,
+        val: TV,
+    ) {
         let mut new_internal = InternalNode {
             nibbles: SparseArray::with_capacity(2),
             index: index,
         };
         let orig_nibble = Self::nibble(leaf_key.as_ref(), index);
         let new_nibble = Self::nibble(key.as_ref(), index);
-        let new_leaf = Node::Leaf(LeafNode {
-            key: key,
-            val: val,
-        });
+        let new_leaf = Node::Leaf(LeafNode { key: key, val: val });
         debug_assert!(orig_nibble != new_nibble);
         let orig_node = unsafe { mem::replace(&mut *t, Node::Empty) };
         new_internal.nibbles.set(orig_nibble, orig_node);
@@ -125,21 +125,20 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         unsafe { *t = Node::Internal(new_internal) };
     }
 
-    fn replace_leaf_with_internal_node(t: *mut Node<TK, TV>,
-                                       leaf: &LeafNode<TK, TV>,
-                                       index: usize,
-                                       key: TK,
-                                       val: TV) {
+    fn replace_leaf_with_internal_node(
+        t: *mut Node<TK, TV>,
+        leaf: &LeafNode<TK, TV>,
+        index: usize,
+        key: TK,
+        val: TV,
+    ) {
         let mut new_internal = InternalNode {
             nibbles: SparseArray::with_capacity(2),
             index: index,
         };
         let orig_nibble = Self::nibble(leaf.key.as_ref(), index);
         let new_nibble = Self::nibble(key.as_ref(), index);
-        let new_leaf = Node::Leaf(LeafNode {
-            key: key,
-            val: val,
-        });
+        let new_leaf = Node::Leaf(LeafNode { key: key, val: val });
         debug_assert!(orig_nibble != new_nibble);
         let orig_node = unsafe { mem::replace(&mut *t, Node::Empty) };
         new_internal.nibbles.set(orig_nibble, orig_node);
@@ -173,10 +172,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
     /// Inserts a new node with the key `key`.
     pub fn insert(&mut self, key: TK, val: TV) -> bool {
         if self.root.is_none() {
-            let leaf = LeafNode {
-                key: key,
-                val: val,
-            };
+            let leaf = LeafNode { key: key, val: val };
             self.root = Some(Node::Leaf(leaf));
             return true;
         }
@@ -225,10 +221,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
                             t = t_next;
                             continue;
                         }
-                        let new_leaf = Node::Leaf(LeafNode {
-                            key: key,
-                            val: val,
-                        });
+                        let new_leaf = Node::Leaf(LeafNode { key: key, val: val });
                         internal.nibbles.set(new_nibble, new_leaf);
                         return true;
                     }
@@ -310,33 +303,30 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
     }
 
     #[doc(hidden)]
-    pub fn prefix_find_next<'t>(&self,
-                                prefix: &TK,
-                                todo: &mut Vec<&'t Node<TK, TV>>,
-                                include_prefix: bool)
-                                -> Option<&'t LeafNode<TK, TV>> {
+    pub fn prefix_find_next<'t>(
+        &self,
+        prefix: &TK,
+        todo: &mut Vec<&'t Node<TK, TV>>,
+        include_prefix: bool,
+    ) -> Option<&'t LeafNode<TK, TV>> {
         let prefix_len = prefix.as_ref().len();
         while let Some(t) = todo.pop() {
             match *t {
-                Node::Leaf(ref leaf) => {
-                    if leaf.key.as_ref().starts_with(prefix.as_ref()) {
-                        if include_prefix || leaf.key.as_ref() != prefix.as_ref() {
-                            return Some(leaf);
-                        }
+                Node::Leaf(ref leaf) => if leaf.key.as_ref().starts_with(prefix.as_ref()) {
+                    if include_prefix || leaf.key.as_ref() != prefix.as_ref() {
+                        return Some(leaf);
                     }
-                }
-                Node::Internal(ref internal) => {
-                    if internal.index / 2 >= prefix_len {
-                        for node in internal.nibbles.all().iter().rev() {
-                            todo.push(node);
-                        }
-                    } else {
-                        let nibble = Self::nibble(prefix.as_ref(), internal.index);
-                        if let Some(node) = internal.nibbles.get(nibble) {
-                            todo.push(node)
-                        }
+                },
+                Node::Internal(ref internal) => if internal.index / 2 >= prefix_len {
+                    for node in internal.nibbles.all().iter().rev() {
+                        todo.push(node);
                     }
-                }
+                } else {
+                    let nibble = Self::nibble(prefix.as_ref(), internal.index);
+                    if let Some(node) = internal.nibbles.get(nibble) {
+                        todo.push(node)
+                    }
+                },
                 _ => unreachable!(),
             }
         }

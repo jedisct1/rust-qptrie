@@ -1,4 +1,4 @@
-use ::Trie;
+use Trie;
 
 #[test]
 fn test_gen() {
