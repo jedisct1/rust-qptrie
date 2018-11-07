@@ -17,10 +17,10 @@ impl<'t, TK: 't + PartialEq + AsRef<[u8]>, TV: 't> TriePrefixIterator<'t, TK, TV
             Some(root) => vec![root],
         };
         TriePrefixIterator {
-            trie: trie,
+            trie,
             prefix: key,
-            todo: todo,
-            include_prefix: include_prefix,
+            todo,
+            include_prefix,
         }
     }
 }
@@ -38,7 +38,8 @@ impl<'t, TK: PartialEq + AsRef<[u8]>, TV> Iterator for TriePrefixIterator<'t, TK
     type Item = (&'t TK, &'t TV);
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.trie
+        match self
+            .trie
             .prefix_find_next(self.prefix, &mut self.todo, self.include_prefix)
         {
             None => None,

@@ -135,7 +135,6 @@ impl<TI> SparseArray<TI> {
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        debug_assert_eq!(self.bitmap, 0);
         self.array.is_empty()
     }
 
