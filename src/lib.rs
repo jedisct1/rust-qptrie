@@ -40,5 +40,5 @@ mod sparse_array;
 mod test;
 mod trie;
 
-pub use iterator::TriePrefixIterator;
-pub use trie::Trie;
+pub use self::iterator::TriePrefixIterator;
+pub use self::trie::Trie;

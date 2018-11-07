@@ -1,5 +1,5 @@
-use node::Node;
-use Trie;
+use super::node::Node;
+use super::Trie;
 
 /// An iterator over keys matching a prefix.
 #[derive(Clone, Debug)]

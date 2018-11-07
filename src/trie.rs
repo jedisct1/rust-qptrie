@@ -1,6 +1,6 @@
-use iterator::TriePrefixIterator;
-use node::{InternalNode, LeafNode, Node};
-use sparse_array::SparseArray;
+use super::iterator::TriePrefixIterator;
+use super::node::{InternalNode, LeafNode, Node};
+use super::sparse_array::SparseArray;
 use std::usize;
 
 use std::{cmp, mem};

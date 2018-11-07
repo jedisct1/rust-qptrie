@@ -1,4 +1,4 @@
-use sparse_array::SparseArray;
+use super::sparse_array::SparseArray;
 
 #[derive(Clone, Debug)]
 pub struct InternalNode<TK: PartialEq + AsRef<[u8]>, TV> {

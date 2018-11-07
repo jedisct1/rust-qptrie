@@ -1,4 +1,4 @@
-use Trie;
+use super::Trie;
 
 #[test]
 fn test_gen() {
