@@ -338,7 +338,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
     }
 
     /// Creates a new iterator over all the nodes whose key includes `prefix` as a prefix.
-    pub fn prefix_iter<'t>(&'t self, prefix: &'t TK) -> TriePrefixIterator<TK, TV> {
+    pub fn prefix_iter<'t>(&'t self, prefix: &'t TK) -> TriePrefixIterator<'_, TK, TV> {
         TriePrefixIterator::new(self, prefix, false)
     }
 }
