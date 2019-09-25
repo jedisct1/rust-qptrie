@@ -13,7 +13,7 @@ travis-ci = { repository = "jedisct1/rust-qptrie" }
 appveyor = { repository = "jedisct1/rust-qptrie" }
 
 [dependencies]
-debug_unreachable = "~0"
+debug_unreachable = "0.1"
 
 [profile.release]
 lto = true
