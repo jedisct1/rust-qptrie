@@ -313,10 +313,10 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         while let Some(t) = todo.pop() {
             match *t {
                 Node::Leaf(ref leaf) => {
-                    if leaf.key.as_ref().starts_with(prefix.as_ref()) {
-                        if include_prefix || leaf.key.as_ref() != prefix.as_ref() {
-                            return Some(leaf);
-                        }
+                    if leaf.key.as_ref().starts_with(prefix.as_ref())
+                        && (include_prefix || leaf.key.as_ref() != prefix.as_ref())
+                    {
+                        return Some(leaf);
                     }
                 }
                 Node::Internal(ref internal) => {

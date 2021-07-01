@@ -30,7 +30,7 @@ impl<TI> SparseArray<TI> {
 
     #[inline]
     pub fn bitmap_size() -> usize {
-        (0 as Bitmap).count_zeros() as usize
+        0_u32.count_zeros() as usize
     }
 
     #[inline]
