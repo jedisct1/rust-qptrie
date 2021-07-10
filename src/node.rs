@@ -28,10 +28,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Default for Node<TK, TV> {
 impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     #[inline]
     pub fn is_internal(&self) -> bool {
-        match *self {
-            Node::Internal(_) => true,
-            _ => false,
-        }
+        matches!(*self, Node::Internal(_))
     }
 
     #[inline]
@@ -52,10 +49,7 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
 
     #[inline]
     pub fn is_leaf(&self) -> bool {
-        match *self {
-            Node::Leaf(_) => true,
-            _ => false,
-        }
+        matches!(*self, Node::Leaf(_))
     }
 
     #[inline]
@@ -76,9 +70,6 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        match *self {
-            Node::Empty => true,
-            _ => false,
-        }
+        matches!(*self, Node::Empty)
     }
 }
