@@ -1,9 +1,9 @@
+use std::usize;
+use std::{cmp, mem};
+
 use super::iterator::TriePrefixIterator;
 use super::node::{InternalNode, LeafNode, Node};
 use super::sparse_array::SparseArray;
-use std::usize;
-
-use std::{cmp, mem};
 
 const COMPLETE_KEY_NIBBLE: usize = 0;
 
@@ -151,7 +151,8 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         Self::default()
     }
 
-    /// Refuses to insert nodes that would make the trie height greater than `max_height`.
+    /// Refuses to insert nodes that would make the trie height greater than
+    /// `max_height`.
     pub fn max_height(mut self, max_height: usize) -> Self {
         self.max_height = max_height;
         self
@@ -236,7 +237,8 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         }
     }
 
-    /// Returns the value associated with the key `key`, or `None` if the key is not present in the trie.
+    /// Returns the value associated with the key `key`, or `None` if the key is
+    /// not present in the trie.
     pub fn get(&self, key: &TK) -> Option<&TV> {
         let root = match self.root.as_ref() {
             None => return None,
@@ -249,7 +251,8 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         Some(&leaf.val)
     }
 
-    /// Returns a mutable value associated with the key `key`, or `None` if the key is not present in the trie.
+    /// Returns a mutable value associated with the key `key`, or `None` if the
+    /// key is not present in the trie.
     pub fn get_mut(&mut self, key: &TK) -> Option<&mut TV> {
         let root = match self.root.as_mut() {
             None => return None,
@@ -264,7 +267,8 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
 
     /// Removes the node associated with the key `key`.
     ///
-    /// Returns `true` if the key was found, or `false` if the operation was a no-op.
+    /// Returns `true` if the key was found, or `false` if the operation was a
+    /// no-op.
     pub fn remove(&mut self, key: &TK) -> bool {
         if self.root.is_none() {
             return false;
@@ -337,7 +341,8 @@ impl<TK: PartialEq + AsRef<[u8]>, TV> Trie<TK, TV> {
         None
     }
 
-    /// Creates a new iterator over all the nodes whose key includes `prefix` as a prefix.
+    /// Creates a new iterator over all the nodes whose key includes `prefix` as
+    /// a prefix.
     pub fn prefix_iter<'t>(&'t self, prefix: &'t TK) -> TriePrefixIterator<TK, TV> {
         TriePrefixIterator::new(self, prefix, false)
     }
