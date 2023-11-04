@@ -20,8 +20,6 @@ pub enum Node<TK: PartialEq + AsRef<[u8]>, TV> {
     Leaf(LeafNode<TK, TV>),
 }
 
-
-
 impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     #[inline]
     pub fn is_internal(&self) -> bool {
