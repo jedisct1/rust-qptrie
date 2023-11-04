@@ -12,18 +12,15 @@ pub struct LeafNode<TK: PartialEq + AsRef<[u8]>, TV> {
     pub val: TV,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum Node<TK: PartialEq + AsRef<[u8]>, TV> {
+    #[default]
     Empty,
     Internal(InternalNode<TK, TV>),
     Leaf(LeafNode<TK, TV>),
 }
 
-impl<TK: PartialEq + AsRef<[u8]>, TV> Default for Node<TK, TV> {
-    fn default() -> Self {
-        Node::Empty
-    }
-}
+
 
 impl<TK: PartialEq + AsRef<[u8]>, TV> Node<TK, TV> {
     #[inline]

@@ -47,18 +47,18 @@ fn test_gen() {
         assert!(it.next().is_none());
     }
 
-    assert_eq!(trie.remove(&vec![0xf2, 0x30, 0x42]), false);
+    assert!(!trie.remove(&vec![0xf2, 0x30, 0x42]));
     assert_eq!(trie.get(&vec![0x12, 0x30, 0x42]), Some(&"123042"));
-    assert_eq!(trie.remove(&vec![0x12, 0x30, 0x42]), true);
+    assert!(trie.remove(&vec![0x12, 0x30, 0x42]));
     assert_eq!(trie.get(&vec![0x12, 0x30, 0x42]), None);
-    assert_eq!(trie.remove(&vec![0x12, 0x30, 0x42]), false);
+    assert!(!trie.remove(&vec![0x12, 0x30, 0x42]));
     assert_eq!(trie.get(&vec![0x12, 0x30, 0x42]), None);
 
     let mut trie2 = Trie::default();
     trie2.insert("x", "x");
     assert_eq!(trie2.get(&"x"), Some(&"x"));
     assert_eq!(trie2.get_mut(&"x"), Some(&mut "x"));
-    assert_eq!(trie2.remove(&"x"), true);
+    assert!(trie2.remove(&"x"));
     assert_eq!(trie2.get(&"x"), None);
     assert_eq!(trie2.get_mut(&"x"), None);
 
