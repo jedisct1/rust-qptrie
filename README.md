@@ -41,7 +41,7 @@ let v = trie.get(&"key number two").unwrap();
 ([source](https://gist.github.com/ce89f94dda19ca426110c7f82405ad45)),
 using `rustc 1.15.0-dev (d9aae6362 2016-12-08)`:
 
-```
+```text
 test test::bench_btreemap_get    ... bench: 112,349,209 ns/iter (+/- 9,450,753)
 test test::bench_btreemap_insert ... bench: 115,952,204 ns/iter (+/- 7,066,195)
 test test::bench_hashmap_get     ... bench:  52,239,122 ns/iter (+/- 2,225,861)
