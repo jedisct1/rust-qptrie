@@ -1,7 +1,7 @@
 [package]
 keywords = ["trie", "prefix", "radix", "map", "dictionary"]
 name = "qptrie"
-version = "0.2.5"
+version = "0.2.6"
 description = "QP-trie key-value map for prefix search and compact associative arrays"
 license = "ISC"
 authors = ["Frank Denis <github@pureftpd.org>"]
